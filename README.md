@@ -10,12 +10,10 @@ Backtested monthly since 1975. Trades through [Alpaca](https://alpaca.markets).
 >   over the last 11 months, smoothly from 100% stocks to 100% gold, and holds 80/20 when neither leads.
 > - **Result:** backtested 1975–2026, +12.1% a year against +11.2% for 100% stocks, with a worst drop of
 >   −24% instead of −52%. Even its worst 10 years made +4.4% a year.
-> - **Main strength:** it cuts the worst outcomes roughly in half without giving up the return of
->   stocks. Against 100% stocks, it avoids the −52% crash and the lost decade. Against a fixed 80/20,
->   it adjusts its insurance: little gold while stocks lead, a lot while gold leads. That earns 1.6
->   points a year more than holding its average mix fixed.
-> - **The catch:** the edge is crash insurance. It shines in long crises (the 1970s, 2000–2003, 2008)
->   and lags stocks by 2–3 points a year in strong bull markets.
+> - **Why it beats a fixed 80/20:** it adjusts how much gold it holds: little while stocks lead, a lot
+>   while gold leads. Holding its average mix fixed instead earns 1.6 points a year less.
+> - **The catch:** the protection comes from long crises (the 1970s, 2000–2003, 2008). In strong bull
+>   markets it lags stocks by 2–3 points a year.
 > - **Honest tuning:** only the momentum horizon and the stock limits were fitted to the data, and both
 >   were checked against overfitting.
 > - **Run it:** `uv run trader rebalance --execute` on an Alpaca paper account. Not financial advice.
