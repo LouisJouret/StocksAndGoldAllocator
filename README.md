@@ -3,7 +3,7 @@
 **A small trading bot that holds world stocks and gold, and leans toward whichever has led for the past year.**
 Backtested monthly since 1975. Trades through [Alpaca](https://alpaca.markets).
 
-[![tests](https://github.com/LouisJouret/MixStocksAndGold/actions/workflows/tests.yml/badge.svg)](https://github.com/LouisJouret/MixStocksAndGold/actions/workflows/tests.yml) ![python](https://img.shields.io/badge/python-3.12-blue) ![license](https://img.shields.io/badge/license-MIT-green) ![style](https://img.shields.io/badge/long--only-no%20leverage-lightgrey)
+![python](https://img.shields.io/badge/python-3.12-blue) ![license](https://img.shields.io/badge/license-MIT-green)
 
 ![World stocks and gold mixes since 1975, and the bot](docs/mixes.png)
 
@@ -128,22 +128,6 @@ Return per year by decade:
 - **Not included:** taxes and currency effects. All numbers are in US dollars.
 - **Small sample of crises:** the bot's edge comes mostly from about three long crises. That's real,
   but it rests on a handful of episodes, not hundreds of independent bets.
-
-## What didn't work
-
-This repo started as something much more ambitious, and the failures shaped the rule:
-
-- **A transformer neural network** read 75 market and macro series (volatility, credit spreads, the
-  yield curve, jobless claims, inflation, the Fed's balance sheet…) and chose an allocation every
-  day. It learned the training years by heart (+30% a year there) but never beat simply holding its
-  own average mix on years it hadn't seen. More inputs, more history, risk penalties and longer
-  training didn't change that.
-- **Predicting crashes** from public data didn't work: by the time a signal is visible, it's in the
-  price. Volatility *is* predictable, but a volatility rule lowered both drops and returns.
-- **Trading more often** didn't help. The network decided daily and traded a lot without gaining
-  anything, and how often you rebalance a fixed mix changes returns by less than 0.1 point a year.
-
-What survived is diversification plus one slow, well-documented effect.
 
 ## Using it
 
