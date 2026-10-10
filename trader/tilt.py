@@ -3,8 +3,8 @@
 Once a month, from month-end prices (defaults in config.yaml):
     lead = log return of stocks − log return of gold over the last `lookback` months (11)
     z    = lead / its usual size (std of monthly return differences over 36 months × √12)
-    stock share = 80% + 20% × tanh(z) when stocks lead, 80% + 80% × tanh(z) when gold leads
-so the mix moves smoothly between 100% stocks and 100% gold, and sits at 80/20 when neither leads.
+    stock share = 50% + 50% × tanh(z + s), with s = atanh(2 × centre − 1)
+an S-curve from 100% gold to 100% stocks, shifted so that it gives `centre` (80%) when neither leads.
 Trades happen only when the stock share is more than `band` away from its target.
 """
 
@@ -29,8 +29,9 @@ def month_end_closes(daily: pd.DataFrame, today: pd.Timestamp) -> pd.DataFrame:
     return closes[closes.index < today.to_period("M").to_timestamp()]
 
 
-def target_share(z: float, base: float = 0.8, up: float = 0.2, down: float = 0.8) -> float:
-    return float(base + (up if z > 0 else down) * np.tanh(z))
+def target_share(z: float, center: float = 0.8) -> float:
+    """Stock share for a lead of size z: smooth from 0% to 100%, and `center` when z = 0."""
+    return float(0.5 + 0.5 * np.tanh(z + np.arctanh(2 * center - 1)))
 
 
 def signals(closes: pd.DataFrame, cfg: dict) -> list[Signal]:
@@ -43,7 +44,7 @@ def signals(closes: pd.DataFrame, cfg: dict) -> list[Signal]:
     out = []
     for month in z.dropna().index:
         out.append(Signal(month, float(np.expm1(lead.loc[month, "stocks"])), float(np.expm1(lead.loc[month, "gold"])),
-                          float(z[month]), target_share(z[month], cfg["base"], cfg["up"], cfg["down"])))
+                          float(z[month]), target_share(z[month], cfg["center"])))
     return out
 
 

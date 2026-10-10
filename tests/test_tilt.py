@@ -4,7 +4,7 @@ import pytest
 
 from trader.tilt import month_end_closes, plan, signals, target_share
 
-CFG = {"base": 0.8, "up": 0.2, "down": 0.3, "lookback": 12, "vol_months": 36}
+CFG = {"center": 0.8, "lookback": 12, "vol_months": 36}
 
 
 def monthly(stock_drift, gold_drift, months=60, seed=0):
@@ -21,6 +21,9 @@ def test_target_share_moves_smoothly_between_all_gold_and_all_stocks():
     zs = np.linspace(-4, 4, 81)
     shares = [target_share(z) for z in zs]
     assert all(0.0 <= s <= 1.0 for s in shares) and np.all(np.diff(shares) > 0)
+    slopes = np.diff(shares)
+    assert np.abs(np.diff(slopes)).max() < 0.01                 # smooth: no corner anywhere
+    assert target_share(0.0, center=0.6) == pytest.approx(0.6)
 
 
 def test_signal_follows_the_leader_and_matches_the_backtest_formula():
@@ -32,7 +35,7 @@ def test_signal_follows_the_leader_and_matches_the_backtest_formula():
     lr = np.log(closes).diff()
     z = (np.log(closes / closes.shift(12))["stocks"] - np.log(closes / closes.shift(12))["gold"]) / (
         (lr["stocks"] - lr["gold"]).rolling(36).std() * np.sqrt(12))
-    expected = 0.8 + np.where(z > 0, 0.2, 0.3) * np.tanh(z)
+    expected = 0.5 + 0.5 * np.tanh(z + np.arctanh(2 * 0.8 - 1))
     got = pd.Series({s.month: s.stock_share for s in signals(closes, CFG)})
     np.testing.assert_allclose(got.to_numpy(), pd.Series(expected, index=closes.index).dropna().to_numpy())
 

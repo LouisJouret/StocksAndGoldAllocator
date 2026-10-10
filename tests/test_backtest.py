@@ -4,7 +4,7 @@ import pytest
 
 from trader.backtest import simulate, tilt_shares
 
-BOT = {"base": 0.8, "up": 0.2, "down": 0.8, "lookback": 11, "vol_months": 36}
+BOT = {"center": 0.8, "lookback": 11, "vol_months": 36}
 
 
 def prices(months=80, seed=0):

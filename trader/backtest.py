@@ -314,9 +314,8 @@ def chart_horizon(px, cash, cfg, path, horizons=range(1, 37)) -> pd.DataFrame:
     ax.set_ylabel("% per year")
     ax.grid(alpha=0.3)
     ax.legend(fontsize=9)
-    hi = cfg["bot"]["base"] + cfg["bot"]["up"]
     ax.set_title(f"Choosing the momentum horizon: average return per decade (stock share "
-                 f"{cfg['bot']['base'] - cfg['bot']['down']:.0%}–{hi:.0%}, neutral {cfg['bot']['base']:.0%})", fontsize=11)
+                 f"0%–100%, {cfg['bot']['center']:.0%} when neither leads)", fontsize=11)
     fig.tight_layout()
     fig.savefig(path, dpi=100)
     plt.close(fig)
@@ -330,7 +329,8 @@ def chart_rule(px, cfg, path):
     from .tilt import target_share
 
     bot = cfg["bot"]
-    share = lambda z: target_share(z, bot["base"], bot["up"], bot["down"]) * 100
+    c = bot["center"]
+    share = lambda z: target_share(z, c) * 100
     occurred = np.array([s.z for s in signals(px, bot)])
     z = np.linspace(-3.5, 3.5, 400)
     fig, ax = plt.subplots(figsize=(10, 5.2))
@@ -341,24 +341,23 @@ def chart_rule(px, cfg, path):
     ax.set_zorder(ax2.get_zorder() + 1)
     ax.patch.set_visible(False)
     ax.plot(z, [share(v) for v in z], color=STYLE["the bot's tilt"][0], lw=3)
-    ax.axhline(bot["base"] * 100, color="k", lw=0.8, ls=":")
+    ax.axhline(c * 100, color="k", lw=0.8, ls=":")
     ax.axvline(0, color="k", lw=0.6)
     for v in (-2, -1, 1, 2):
         s = share(v)
         ax.plot(v, s, "o", color=STYLE["the bot's tilt"][0])
         ax.annotate(f"z = {v:+d}: {s:.0f}/{100 - s:.0f}", (v, s), textcoords="offset points",
                     xytext=(8, -14 if v > 0 else 6), fontsize=9)
-    lo, hi = (bot["base"] - bot["down"]) * 100, (bot["base"] + bot["up"]) * 100
-    ax.text(-3.35, lo + 0.45 * (bot["base"] * 100 - lo), f"gold has led\n→ down to {lo:.0f}/{100 - lo:.0f}", fontsize=10, color="#a0812c")
-    ax.text(1.9, bot["base"] * 100 - 0.3 * (bot["base"] * 100 - lo), f"stocks have led\n→ up to {hi:.0f}/{100 - hi:.0f}",
+    ax.text(-3.35, 36, "gold has led\n→ toward 0/100", fontsize=10, color="#a0812c")
+    ax.text(1.9, 56, "stocks have led\n→ toward 100/0",
             fontsize=10, color="#2c5ba0")
-    ax.text(0.08, bot["base"] * 100 - 4, f"no lead: {bot['base']:.0%}/{1 - bot['base']:.0%}", fontsize=9, color="#333")
+    ax.text(0.08, c * 100 - 4, f"no lead: {c:.0%}/{1 - c:.0%}", fontsize=9, color="#333")
     ax.set_xlim(-3.5, 3.5)
-    ax.set_ylim(lo - 3, hi + 3)
+    ax.set_ylim(-3, 103)
     ax.set_xlabel(f"z = stocks' {bot['lookback']}-month lead over gold ÷ its usual size")
     ax.set_ylabel("stock share (%), the rest in gold")
-    ax.set_title(f"The rule: a smooth tilt between {lo:.0f}/{100 - lo:.0f} and {hi:.0f}/{100 - hi:.0f}, "
-                 f"centred on {bot['base']:.0%}/{1 - bot['base']:.0%}", fontsize=11)
+    ax.set_title(f"The rule: one smooth curve from all gold to all stocks, at {c:.0%}/{1 - c:.0%} when neither leads",
+                 fontsize=11)
     ax.grid(alpha=0.3)
     fig.tight_layout()
     fig.savefig(path, dpi=110)
