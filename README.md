@@ -1,4 +1,4 @@
-# MixStocks&Gold
+# StocksAndGoldAllocator
 
 **A small trading bot that holds world stocks and gold, and leans toward whichever has led for the past year.**
 Backtested monthly since 1975. Trades through [Alpaca](https://alpaca.markets).
@@ -232,7 +232,7 @@ Return per year by decade:
 ## Using it
 
 ```bash
-git clone https://github.com/LouisJouret/MixStocksAndGold && cd MixStocksAndGold
+git clone https://github.com/LouisJouret/StocksAndGoldAllocator && cd StocksAndGoldAllocator
 uv sync                              # needs uv: https://docs.astral.sh/uv/
 uv run pytest                        # offline tests
 uv run trader backtest               # tables + charts in results/ (add --docs to refresh docs/)
