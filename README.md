@@ -56,7 +56,7 @@ $$\text{lead}_t = \ln\frac{S_t}{S_{t-11}} - \ln\frac{G_t}{G_{t-11}}$$
 
 $$z_t = \frac{\text{lead}_t}{\sqrt{12}\cdot\sigma_{36}\left(\Delta \ln S - \Delta \ln G\right)}$$
 
-$$\text{stock share}_t = 50\\% + 50\\% \cdot \tanh\left(z_t + s\right), \qquad s = \operatorname{atanh}(2 \cdot 80\\% - 1) \approx 0.69$$
+$$\text{stock share}_t = 50\\% + 50\\% \cdot \tanh\left(z_t + s\right), \qquad s = \mathrm{atanh}(2 \cdot 80\\% - 1) \approx 0.69$$
 
 The rest is gold.
 
