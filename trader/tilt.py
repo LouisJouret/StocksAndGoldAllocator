@@ -1,10 +1,10 @@
 """The smooth momentum tilt between world stocks and gold, and the trades that follow from it.
 
-Once a month, from month-end prices:
-    lead = 12-month log return of stocks − 12-month log return of gold
+Once a month, from month-end prices (defaults in config.yaml):
+    lead = log return of stocks − log return of gold over the last `lookback` months (11)
     z    = lead / its usual size (std of monthly return differences over 36 months × √12)
-    stock share = 80% + 20% × tanh(z) when stocks lead, 80% + 30% × tanh(z) when gold leads
-so the mix moves smoothly between 100/0 and 50/50, and sits at 80/20 when neither leads.
+    stock share = 80% + 20% × tanh(z) when stocks lead, 80% + 80% × tanh(z) when gold leads
+so the mix moves smoothly between 100% stocks and 100% gold, and sits at 80/20 when neither leads.
 Trades happen only when the stock share is more than `band` away from its target.
 """
 
@@ -17,8 +17,8 @@ import pandas as pd
 @dataclass
 class Signal:
     month: pd.Timestamp       # the month-end the decision is based on
-    stocks_12m: float         # 12-month return of the stock fund
-    gold_12m: float           # 12-month return of the gold fund
+    stocks_return: float      # return of the stock fund over the lookback
+    gold_return: float        # return of the gold fund over the lookback
     z: float
     stock_share: float        # target share of stocks; the rest is gold
 
@@ -29,7 +29,7 @@ def month_end_closes(daily: pd.DataFrame, today: pd.Timestamp) -> pd.DataFrame:
     return closes[closes.index < today.to_period("M").to_timestamp()]
 
 
-def target_share(z: float, base: float = 0.8, up: float = 0.2, down: float = 0.3) -> float:
+def target_share(z: float, base: float = 0.8, up: float = 0.2, down: float = 0.8) -> float:
     return float(base + (up if z > 0 else down) * np.tanh(z))
 
 

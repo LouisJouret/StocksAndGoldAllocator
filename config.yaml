@@ -7,8 +7,8 @@ bot:                        # uv run trader signal / rebalance
   signal: {stocks: ACWI, gold: GLD}   # prices the signal is computed from (GLD has a longer history than GLDM)
   base: 0.8                 # stock share when neither leads
   up: 0.2                   # up to 100% stocks when stocks lead
-  down: 0.3                 # down to 50% stocks when gold leads
-  lookback: 12              # months of momentum
+  down: 0.8                 # down to 0% stocks (all gold) when gold leads
+  lookback: 11              # months of momentum: chosen by the horizon scan (README, results/horizon.png)
   vol_months: 36            # months used to measure the usual size of the lead
   band: 0.05                # trade only when the stock share is more than 5 points off target
   cash_buffer: 0.005        # keep 0.5% in cash so orders never ask for more than the account has

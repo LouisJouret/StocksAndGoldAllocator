@@ -39,10 +39,10 @@ def cmd_signal(args):
     cfg = load_config(args.config)
     b = cfg["bot"]
     sig = _signals(cfg)
-    t = Table("month end", f"{b['signal']['stocks']} 12 mo", f"{b['signal']['gold']} 12 mo", "z",
+    t = Table("month end", f"{b['signal']['stocks']} {b['lookback']} mo", f"{b['signal']['gold']} {b['lookback']} mo", "z",
               f"target {b['stocks']}", f"target {b['gold']}")
     for s in sig[-13:]:
-        t.add_row(f"{s.month:%Y-%m}", f"{s.stocks_12m:+.1%}", f"{s.gold_12m:+.1%}", f"{s.z:+.2f}",
+        t.add_row(f"{s.month:%Y-%m}", f"{s.stocks_return:+.1%}", f"{s.gold_return:+.1%}", f"{s.z:+.2f}",
                   f"{s.stock_share:.0%}", f"{1 - s.stock_share:.0%}")
     console.print(t)
     s = sig[-1]
@@ -169,7 +169,22 @@ def cmd_backtest(args):
                   f"{(today[name] > today['fixed 80/20']).mean():.0%} until today, "
                   f"{(ten[name] > ten['fixed 80/20']).mean():.0%} over 10 yrs", pct(ten[name].min()))
     console.print(t)
-    console.print(f"Charts: {short(out / 'mixes.png')}, {short(out / 'tilt.png')}, {short(out / 'start_dates.png')}")
+    horizon = bt.chart_horizon(px, cash, cfg, out / "horizon.png")
+    t = Table("horizon (months)", "avg per decade", "first half", "second half", "per year", "worst drop", "traded/yr")
+    for h in (3, 6, 9, 10, 11, 12, 15, 18, 24, 36):
+        r = horizon.loc[h]
+        t.add_row(f"{h}" + (" (the bot)" if h == cfg["bot"]["lookback"] else ""), pct(r["whole period"]), pct(r["first half"]),
+                  pct(r["second half"]), pct(r["per year"]), f"{r['worst drop']:.0%}", f"{r['traded/yr']:.0%}")
+    console.print(t)
+    bt.chart_rule(px, cfg, out / "rule.png")
+    charts = ["mixes.png", "tilt.png", "start_dates.png", "horizon.png", "rule.png"]
+    if args.docs:
+        import shutil
+
+        resolve("docs").mkdir(exist_ok=True)
+        for name in charts:
+            shutil.copy(out / name, resolve("docs") / name)
+    console.print("Charts: " + ", ".join(short(out / n) for n in charts) + (" (also copied to docs/)" if args.docs else ""))
 
 
 def main():
@@ -187,6 +202,7 @@ def main():
     s.set_defaults(func=cmd_rebalance)
 
     s = sub.add_parser("backtest", help="backtest the rule and fixed mixes monthly since 1972; charts in results/")
+    s.add_argument("--docs", action="store_true", help="also copy the charts to docs/ (used by the README)")
     s.set_defaults(func=cmd_backtest)
 
     args = p.parse_args()

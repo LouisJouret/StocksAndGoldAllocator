@@ -4,7 +4,7 @@ import pytest
 
 from trader.backtest import simulate, tilt_shares
 
-BOT = {"base": 0.8, "up": 0.2, "down": 0.3, "lookback": 12, "vol_months": 36}
+BOT = {"base": 0.8, "up": 0.2, "down": 0.8, "lookback": 11, "vol_months": 36}
 
 
 def prices(months=80, seed=0):
@@ -40,4 +40,4 @@ def test_the_tilt_never_uses_prices_from_the_month_it_is_applied_to():
     # The share applied to month t+1 (decided at t, from data up to t-1) ignores month 60 until t = 61
     pd.testing.assert_series_equal(before.iloc[:61], after.iloc[:61])
     assert not np.allclose(before.iloc[61:].dropna(), after.iloc[61:].dropna())
-    assert before.dropna().between(0.5, 1.0).all()
+    assert before.dropna().between(0.0, 1.0).all()

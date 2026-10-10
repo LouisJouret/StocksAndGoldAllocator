@@ -14,13 +14,13 @@ def monthly(stock_drift, gold_drift, months=60, seed=0):
     return pd.DataFrame({"stocks": walk(stock_drift), "gold": walk(gold_drift)}, index=idx)
 
 
-def test_target_share_moves_smoothly_between_50_and_100_percent():
+def test_target_share_moves_smoothly_between_all_gold_and_all_stocks():
     assert target_share(0.0) == pytest.approx(0.8)
     assert target_share(5.0) == pytest.approx(1.0, abs=1e-3)
-    assert target_share(-5.0) == pytest.approx(0.5, abs=1e-3)
+    assert target_share(-5.0) == pytest.approx(0.0, abs=1e-3)
     zs = np.linspace(-4, 4, 81)
     shares = [target_share(z) for z in zs]
-    assert all(0.5 <= s <= 1.0 for s in shares) and np.all(np.diff(shares) > 0)
+    assert all(0.0 <= s <= 1.0 for s in shares) and np.all(np.diff(shares) > 0)
 
 
 def test_signal_follows_the_leader_and_matches_the_backtest_formula():

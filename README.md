@@ -7,10 +7,10 @@ Backtested monthly since 1975. Trades through [Alpaca](https://alpaca.markets).
 
 ![World stocks and gold mixes since 1975, and the bot](docs/mixes.png)
 
-Once a month, the bot compares the last 12 months of world stocks (ACWI) and gold. The more stocks
-have led, the closer it moves to **100% stocks**. The more gold has led, the closer it moves to **50/50**.
-With no clear leader, it holds **80/20**. It trades only when the portfolio is more than 5 points off
-that target.
+Once a month, the bot compares the last 11 months of world stocks (ACWI) and gold. The more stocks
+have led, the closer it moves to **100% stocks**. The more gold has led, the closer it moves to **100%
+gold**. With no clear leader, it holds **80/20**. It trades only when the portfolio is more than 5
+points off that target.
 
 ## Results at a glance
 
@@ -20,16 +20,15 @@ Monthly backtest, March 1975 – September 2026, in USD, after 0.1% per trade:
 |---|---:|---:|---:|---:|
 | 100% world stocks | +11.2% | −52% | −1.2% / yr | 0.51 |
 | Fixed 80% stocks / 20% gold | +10.7% | −41% | +1.9% / yr | 0.55 |
-| The bot's *average* mix (81/19), held fixed | +10.7% | −42% | +1.5% / yr | 0.54 |
-| **The bot** | **+11.5%** | **−29%** | **+5.0% / yr** | **0.58** |
+| The bot's *average* mix (69/31), held fixed | +10.3% | −35% | +3.5% / yr | 0.53 |
+| **The bot** | **+12.0%** | **−25%** | **+4.0% / yr** | **0.55** |
 
-It earns about the return of 100% stocks, with roughly half the worst crash, and its worst decade
-still made money. The edge is mostly **crash insurance**: it shows up in long crises, when gold kept
-rising for months (the late 1970s, 2000–2003, 2008). In strong bull markets it lags stocks by 1–2
-points a year.
+It beats 100% stocks by about 0.8 points a year, with half the worst crash, and its worst decade
+still made money. The edge comes from long crises, when gold kept rising for months (the late
+1970s, 2000–2003, 2008). In strong bull markets it lags stocks by 2.5–4.5 points a year.
 
-The third row isolates the timing. Holding the bot's average split all the time does no better than
-a plain 80/20. The gain comes from *when* it holds more gold, not from holding gold.
+The third row isolates the timing. Holding the bot's average split all the time earns 1.7 points a
+year less. The gain comes from *when* it holds gold, not from how much.
 
 ## How it works
 
@@ -53,23 +52,24 @@ in markets, across stocks, bonds, currencies and commodities and over more than 
 
 With $S$ the world-stock price and $G$ the gold price at month ends:
 
-$$\text{lead}_t = \ln\frac{S_t}{S_{t-12}} - \ln\frac{G_t}{G_{t-12}}$$
+$$\text{lead}_t = \ln\frac{S_t}{S_{t-11}} - \ln\frac{G_t}{G_{t-11}}$$
 
 $$z_t = \frac{\text{lead}_t}{\sqrt{12}\cdot\sigma_{36}\left(\Delta \ln S - \Delta \ln G\right)}$$
 
-$$\text{stock share}_t = \begin{cases} 80\\% + 20\\% \cdot \tanh z_t & \text{if } z_t > 0 \text{ (stocks lead)} \\\\ 80\\% + 30\\% \cdot \tanh z_t & \text{if } z_t \le 0 \text{ (gold leads)} \end{cases}$$
+$$\text{stock share}_t = \begin{cases} 80\\% + 20\\% \cdot \tanh z_t & \text{if } z_t > 0 \text{ (stocks lead)} \\\\ 80\\% + 80\\% \cdot \tanh z_t & \text{if } z_t \le 0 \text{ (gold leads)} \end{cases}$$
 
 The rest is gold.
 
-- **lead:** how much better stocks did than gold over the last 12 months.
+- **lead:** how much better stocks did than gold over the last 11 months.
 - **z:** that lead divided by its usual size, measured by how much the monthly difference between
   the two has swung over the last 3 years. A 20-point lead means little in a wild year and a lot in a
   calm one, so this makes the signal comparable across decades.
 - **tanh:** turns z into a share smoothly. A small lead barely moves the mix, and a strong one
-  saturates, so it never goes past 100/0 or 50/50. An on/off switch gave the same crash protection
-  but traded 60–80% more, flipping 40 points on tiny leads.
-- **80/20 centre, more room toward gold:** stocks have the higher long-run return, so the neutral mix
-  leans to stocks. The extra room toward gold is where the crash protection comes from.
+  saturates at 100% stocks or 100% gold. An on/off switch gave similar crash protection but traded
+  much more, flipping on tiny leads.
+- **80/20 centre, room all the way to gold:** stocks have the higher long-run return, so the neutral
+  mix leans to stocks. Going all the way to gold when gold clearly leads is where the crash
+  protection comes from.
 
 ![How z maps to the stock share, and how often each z occurred](docs/rule.png)
 
@@ -77,23 +77,84 @@ The rest is gold.
 
 ```mermaid
 flowchart LR
-    A["Month-end prices<br/>ACWI and GLD"] --> B["12-month lead<br/>stocks − gold"]
+    A["Month-end prices<br/>ACWI and GLD"] --> B["11-month lead<br/>stocks − gold"]
     B --> C["÷ its usual size<br/>(36 months)"]
-    C --> D["target stock share<br/>between 50% and 100%"]
+    C --> D["target stock share<br/>between 0% and 100%"]
     D --> E{"more than 5 points<br/>off target?"}
     E -- yes --> F["rebalance:<br/>sell first, then buy"]
     E -- no --> G["only invest new cash,<br/>never sell"]
 ```
 
-### Why these settings
+## Choosing the settings
 
-| choice | why |
-|---|---|
-| 12-month lookback | The standard in the momentum literature, not tuned. Lookbacks of 6 to 15 months all beat a fixed 80/20 by 0.4–1.0 points a year; 3 months broke even because it trades too much. All of them had a smaller worst drop. |
-| 3-year "usual size" | Long enough to be stable, short enough to adapt from the calm 1990s to the wild 2000s. |
-| smooth tanh, not on/off | Same protection, about half the trading, less whipsaw when the lead flips back and forth. |
-| floor at 50/50 | Slightly better crash protection than a 60/40 floor (worst drop −29% vs −33%), with a bit more trading. |
-| 5-point band | How you rebalance changes returns by less than 0.1 point a year, so the rule is chosen to trade rarely. |
+Only two things were tuned on the data: the **momentum horizon** and the **stock limits**. Everything
+else uses standard or neutral values (an 80/20 centre, a 3-year window, the plain tanh curve, a
+5-point band).
+
+### The momentum horizon
+
+Every horizon from 1 to 36 months was backtested with the same limits (0–100% stocks), the same
+start month and the same costs. Each was scored by its average return per decade, so every decade
+counts equally:
+
+![Return per decade for every momentum horizon](docs/horizon.png)
+
+| horizon | per decade | 1975–1999 only | 2000–2026 only | worst drop | traded per year |
+|---|---:|---:|---:|---:|---:|
+| 3 months | +11.4% | +14.2% | +8.5% | −36% | 249% |
+| 6 months | +11.8% | +14.5% | +9.0% | −39% | 201% |
+| 9 months | +12.7% | +15.6% | +9.9% | −25% | 159% |
+| **11 months** | **+13.4%** | **+17.0%** | +9.8% | −25% | 141% |
+| 12 months | +12.8% | +16.0% | +9.6% | −26% | 137% |
+| 15 months | +12.8% | +16.1% | +9.5% | −31% | 129% |
+| 18 months | +12.3% | +15.3% | +9.3% | −36% | 126% |
+| 24 months | +11.2% | +13.8% | +8.7% | −44% | 97% |
+| 36 months | +11.2% | +13.2% | +9.1% | −49% | 69% |
+| *fixed 80/20* | *+11.5%* | | | *−41%* | *5%* |
+
+- **Too short (1–6 months):** it reacts to noise. It flips back and forth, trades 2–3 times the
+  portfolio a year, and does no better than a fixed 80/20.
+- **Too long (20+ months):** it reacts too late. It's still in stocks when a crash starts, so the
+  worst drop grows to −44% to −50%.
+- **Sweet spot, about 9–12 months:** long enough to ignore noise, short enough to move to gold early
+  in a long crisis. 11 months scored best.
+- **Both halves agree.** Chosen on 1975–1999 alone, the best horizon would also have been 11 months,
+  and it ranked 3rd of 36 on 2000–2026. Chosen on 2000–2026, it would have been 9 months, ranked
+  6th on 1975–1999. The two dashed lines peak in the same zone.
+- **11 vs 12 months is within noise:** the curve wobbles by about 0.4 points from one month to the
+  next. The finding is "about 9 to 12 months", which includes the 12 months common in the
+  literature.
+
+Run `uv run trader backtest` to redraw this chart (`results/horizon.png`) with the latest data.
+
+### The stock limits
+
+A search over the upper limit (80–100% stocks), the lower limit (0–80%) and the horizon found that
+the **lower limit matters most**. The lower it was, the better, at every horizon from 9 to 15
+months. At 11 months, going down to 0% stocks (all gold) when gold clearly leads beat a 50% floor
+by 0.7 points per decade (+13.4% vs +12.7%), with a smaller worst drop (−25% vs −30%). Settings
+chosen on one half of the history also did well on the other.
+
+The catch: this gain comes from the two gold booms (late 1970s: +25.8% a year vs +20.6% with a 50%
+floor; 2000s: +10.5% vs +6.9%). It costs 0.7–1.6 points a year in every other decade, and more than
+doubles the trading (141% of the portfolio a year vs 64%).
+
+### Why nothing else was tuned
+
+A search over all seven settings found combinations that looked even better (up to +14% per
+decade). But they didn't hold up:
+- **They failed the halves test.** Across all combinations, the scores in 1975–1999 and 2000–2026
+  were *negatively* related: settings that did well in one half tended to do worse than average in
+  the other.
+- **They failed the luck test.** The same search run on shuffled histories, where the months are in
+  random order so no momentum can exist, still "found" settings beating 80/20 by about 1 point a
+  year, and up to 4.5 points. A big search always finds a winner.
+
+The horizon and limits passed the halves test. Their gain over 80/20 (+2.3 points per decade) is
+also well above what luck produced in the same search on shuffled histories (+0.75 on average),
+though one shuffled history in twenty did better. The original 12-month rule, set before any tuning,
+beat 80/20 by more than in any of the 20 shuffled histories, which is evidence that the momentum
+effect itself is real here.
 
 ## The backtest
 
@@ -105,12 +166,12 @@ Return per year by decade:
 |---|---:|---:|---:|---:|---:|---:|
 | 100% world stocks | +14.8% | **+20.8%** | **+11.3%** | +1.7% | **+8.9%** | +12.8% |
 | Fixed 80/20 | +17.1% | +17.0% | +8.5% | +4.8% | +7.8% | **+13.8%** |
-| **The bot** | **+19.2%** | +18.5% | +9.2% | **+7.0%** | +7.4% | +12.9% |
+| **The bot** | **+25.8%** | +16.5% | +8.7% | **+10.5%** | +6.0% | +12.8% |
 
 **Does the start date matter?** Starting from every month since 1975:
-- **Until today:** the bot beat a fixed 80/20 from 70% of start months, and 100% stocks from 69%.
-- **Over the following 10 years:** it beat 100% stocks about half the time (52%).
-- **Worst 10-year stretch:** +5.1% a year for the bot, against −1.2% for 100% stocks.
+- **Until today:** the bot beat a fixed 80/20 from 73% of start months, and 100% stocks from 70%.
+- **Over the following 10 years:** it beat 100% stocks about half the time (53%).
+- **Worst 10-year stretch:** +4.1% a year for the bot, against −1.2% for 100% stocks.
 
 ![Results from every start month](docs/start_dates.png)
 
@@ -126,8 +187,8 @@ Return per year by decade:
   for everything, which makes drops look smaller than they were day to day. Averaging also links
   neighbouring months, so the backtest uses a signal **one month older** than the live bot.
 - **Not included:** taxes and currency effects. All numbers are in US dollars.
-- **Small sample of crises:** the bot's edge comes mostly from about three long crises. That's real,
-  but it rests on a handful of episodes, not hundreds of independent bets.
+- **Small sample of crises:** the bot's edge comes mostly from a few long crises and two big gold
+  booms. That's real, but it rests on a handful of episodes, not hundreds of independent bets.
 
 ## Using it
 
@@ -135,7 +196,7 @@ Return per year by decade:
 git clone https://github.com/LouisJouret/MixStocksAndGold && cd MixStocksAndGold
 uv sync                              # needs uv: https://docs.astral.sh/uv/
 uv run pytest                        # offline tests
-uv run trader backtest               # tables + charts in results/ (about 5 seconds)
+uv run trader backtest               # tables + charts in results/ (add --docs to refresh docs/)
 uv run trader signal                 # this month's target, no broker needed
 cp .env.example .env                 # then add your Alpaca paper keys
 uv run trader rebalance              # dry run: shows the orders it would place
@@ -144,9 +205,9 @@ uv run trader rebalance --execute    # places them in the paper account
 
 ```
 $ uv run trader signal
-┃ month end ┃ ACWI 12 mo ┃ GLD 12 mo ┃ z     ┃ target ACWI ┃ target GLDM ┃
-│ 2026-09   │ +16.6%     │ +7.1%     │ +0.41 │ 88%         │ 12%         │
-Target for this month (from prices up to 2026-09-30): 87.8% ACWI, 12.2% GLDM.
+┃ month end ┃ ACWI 11 mo ┃ GLD 11 mo ┃ z     ┃ target ACWI ┃ target GLDM ┃
+│ 2026-09   │ +14.0%     │ +3.5%     │ +0.47 │ 89%         │ 11%         │
+Target for this month (from prices up to 2026-09-30): 88.8% ACWI, 11.2% GLDM.
 ```
 
 **What `rebalance` does:**
@@ -181,7 +242,7 @@ All settings (funds, the rule, band, cash buffer, backtest costs) live in [`conf
 |---|---|
 | [`trader/tilt.py`](trader/tilt.py) | the rule and the trade planning, broker-free and tested |
 | [`trader/broker.py`](trader/broker.py) | Alpaca: account, positions, orders |
-| [`trader/backtest.py`](trader/backtest.py) | the 1972–today monthly history, simulation, charts |
+| [`trader/backtest.py`](trader/backtest.py) | the 1972–today monthly history, simulation, the horizon scan, charts |
 | [`trader/data.py`](trader/data.py) | Yahoo prices, Kenneth French's data, the gold series (cached in `data/`) |
 | [`trader/cli.py`](trader/cli.py) | the `signal`, `rebalance` and `backtest` commands |
 
@@ -208,8 +269,9 @@ The pieces are well studied. This particular combination is not a published stra
 
 This is a personal research project, **not financial advice**. Backtests are hypothetical: they use
 reconstructed data and assumptions, and include choices made after looking at the past. Real
-results will differ. The bot can place real orders if you give it live keys and `--live`. Run it on
-paper first, and only with money you can afford to lose.
+results will differ. The bot can hold 100% gold, which has had drops of −45% to −63% in the past.
+It can place real orders if you give it live keys and `--live`. Run it on paper first, and only with
+money you can afford to lose.
 
 Before trading real money, check that you may buy US-listed funds where you live (EU residents
 usually can't), and how they're taxed for you. US-listed funds can carry US estate tax for non-US

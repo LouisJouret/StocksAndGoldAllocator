@@ -188,16 +188,18 @@ def chart_tilt(px, cash, cfg, targets, path) -> tuple[pd.DataFrame, pd.DataFrame
     start = runs["fixed 80/20"][0].index[0]
     fig = plt.figure(figsize=(15, 11))
     ax = fig.add_subplot(2, 1, 1)
-    t = targets["the bot's tilt"].dropna()
-    ax.step(t.index, t * 100, where="post", color=STYLE["the bot's tilt"][0], lw=1.8, label="the bot's tilt")
+    for name in [n for n in targets if n not in ("100% stocks", "fixed 80/20")]:
+        t = targets[name].dropna()
+        ax.step(t.index, t * 100, where="post", color=STYLE[name][0], lw=1.8 if name == "the bot's tilt" else 1.0,
+                alpha=1.0 if name == "the bot's tilt" else 0.8, label=name)
     ax.axhline(80, color="k", lw=0.8, label="fixed 80/20")
     ax.axhline(100, color="#9e9e9e", lw=1.5, ls=":", label="100% stocks")
-    ax.set_ylim(45, 103)
+    ax.set_ylim(-3, 103)
     ax.set_ylabel("stock share for the next month (%)")
     ax.grid(alpha=0.3)
     ax.legend(loc="lower left", fontsize=9, ncol=3)
-    ax.set_title("A. Stock share chosen each month (the rest is gold): stocks' 12-month lead over gold, "
-                 "scaled by its usual size", fontsize=10.5)
+    ax.set_title(f"A. Stock share chosen each month (the rest is gold): stocks' {cfg['bot']['lookback']}-month lead "
+                 "over gold, scaled by its usual size", fontsize=10.5)
     ax2 = fig.add_subplot(2, 2, 3)
     for n, (v, _) in runs.items():
         st = table.loc[n]
@@ -213,8 +215,9 @@ def chart_tilt(px, cash, cfg, targets, path) -> tuple[pd.DataFrame, pd.DataFrame
                             for n, (v, _) in runs.items()})
     ax3 = fig.add_subplot(2, 2, 4)
     xs = np.arange(len(decades))
+    width = 0.8 / len(decades.columns)
     for k, n in enumerate(decades.columns):
-        ax3.bar(xs + (k - 1) * 0.27, decades[n] * 100, 0.26, color=STYLE[n][0], label=n)
+        ax3.bar(xs + (k - (len(decades.columns) - 1) / 2) * width, decades[n] * 100, width * 0.95, color=STYLE[n][0], label=n)
     ax3.set_xticks(xs, decades.index)
     ax3.axhline(0, color="k", lw=0.6)
     ax3.grid(alpha=0.3, axis="y")
@@ -244,7 +247,7 @@ def chart_start_dates(px, cfg, targets, path) -> dict[str, pd.DataFrame]:
               (res["worst drop"], "C. Worst drop lived through, from the start date until today "
                                   "(monthly averages: real drops were deeper)", "worst drop (%)"))
     for ax, (df, title, ylabel) in zip(axs, panels):
-        for n, (col, lw) in STYLE.items():
+        for n, (col, lw) in [(n, STYLE[n]) for n in targets]:
             ax.plot(df.index, df[n] * 100, color=col, lw=lw, label=n)
         ax.set_title(title, fontsize=11)
         ax.set_ylabel(ylabel)
@@ -263,3 +266,100 @@ def chart_start_dates(px, cfg, targets, path) -> dict[str, pd.DataFrame]:
     fig.savefig(path, dpi=100)
     plt.close(fig)
     return {"until today": res["until today"][enough], "next 10 years": ten, "worst drop": res["worst drop"]}
+
+
+DECADES = [("1975–79", 1975, 1979), ("1980s", 1980, 1989), ("1990s", 1990, 1999), ("2000s", 2000, 2009),
+           ("2010s", 2010, 2019), ("2020s", 2020, 2029)]
+
+
+def per_decade(v: pd.Series) -> dict[str, float]:
+    """Return per year in each decade (or part of it) covered by the value curve `v`."""
+    out = {}
+    for name, a, b in DECADES:
+        seg, before = v.loc[f"{a}":f"{b}"], v.loc[:f"{a - 1}"]
+        if len(seg):
+            out[name] = (seg.iloc[-1] / (before.iloc[-1] if len(before) else 1.0)) ** (12 / len(seg)) - 1
+    return out
+
+
+def chart_horizon(px, cash, cfg, path, horizons=range(1, 37)) -> pd.DataFrame:
+    """Every momentum horizon with the bot's other settings: average return per decade over the whole period
+    and over each half, so you can see whether the best horizon is a broad zone or a lucky spike."""
+    import matplotlib.pyplot as plt
+
+    bt = cfg["backtest"]
+    shares = {h: tilt_shares(px, {**cfg["bot"], "lookback": h}) for h in horizons}
+    common = np.logical_and.reduce([s.notna() for s in shares.values()])     # same start for every horizon
+    rows = {}
+    for h, s in shares.items():
+        v, traded = simulate(px, s.where(common), bt["band"], bt["cost"])
+        d = per_decade(v)
+        names = list(d)
+        rows[h] = {"whole period": np.mean(list(d.values())), "first half": np.mean([d[n] for n in names[:3]]),
+                   "second half": np.mean([d[n] for n in names[3:]]), **stats(v, cash), "traded/yr": traded}
+    df = pd.DataFrame(rows).T
+    fixed, _ = simulate(px, pd.Series(0.8, index=px.index).where(common), bt["band"], bt["cost"])
+    ref = np.mean(list(per_decade(fixed).values()))
+    first, half = fixed.index[0], DECADES[3][1]
+    fig, ax = plt.subplots(figsize=(11, 5.5))
+    ax.plot(df.index, df["whole period"] * 100, "o-", color=STYLE["the bot's tilt"][0], lw=2.4,
+            label=f"average per decade, {first:%Y}–{px.index[-1]:%Y}")
+    ax.plot(df.index, df["first half"] * 100, "--", color="C1", label=f"average per decade, {first:%Y}–{half - 1} only")
+    ax.plot(df.index, df["second half"] * 100, "--", color="C0", label=f"average per decade, {half}–{px.index[-1]:%Y} only")
+    ax.axhline(ref * 100, color="k", lw=1, ls=":", label=f"fixed 80/20 ({ref:.1%})")
+    chosen = cfg["bot"]["lookback"]
+    ax.annotate(f"the bot: {chosen} months", (chosen, df.loc[chosen, "whole period"] * 100),
+                xytext=(chosen + 2, df.loc[chosen, "whole period"] * 100 + 0.5), arrowprops=dict(arrowstyle="->"))
+    ax.set_xlabel("momentum horizon (months)")
+    ax.set_ylabel("% per year")
+    ax.grid(alpha=0.3)
+    ax.legend(fontsize=9)
+    hi = cfg["bot"]["base"] + cfg["bot"]["up"]
+    ax.set_title(f"Choosing the momentum horizon: average return per decade (stock share "
+                 f"{cfg['bot']['base'] - cfg['bot']['down']:.0%}–{hi:.0%}, neutral {cfg['bot']['base']:.0%})", fontsize=11)
+    fig.tight_layout()
+    fig.savefig(path, dpi=100)
+    plt.close(fig)
+    return df
+
+
+def chart_rule(px, cfg, path):
+    """How z maps to the stock share, over a histogram of the z values that actually occurred."""
+    import matplotlib.pyplot as plt
+
+    from .tilt import target_share
+
+    bot = cfg["bot"]
+    share = lambda z: target_share(z, bot["base"], bot["up"], bot["down"]) * 100
+    occurred = np.array([s.z for s in signals(px, bot)])
+    z = np.linspace(-3.5, 3.5, 400)
+    fig, ax = plt.subplots(figsize=(10, 5.2))
+    ax2 = ax.twinx()
+    ax2.hist(occurred, bins=40, range=(-3.5, 3.5), color="#bbb", alpha=0.5)
+    ax2.set_yticks([])
+    ax2.set_ylabel(f"how often each z occurred, {px.index[0]:%Y}–{px.index[-1]:%Y}", color="#888")
+    ax.set_zorder(ax2.get_zorder() + 1)
+    ax.patch.set_visible(False)
+    ax.plot(z, [share(v) for v in z], color=STYLE["the bot's tilt"][0], lw=3)
+    ax.axhline(bot["base"] * 100, color="k", lw=0.8, ls=":")
+    ax.axvline(0, color="k", lw=0.6)
+    for v in (-2, -1, 1, 2):
+        s = share(v)
+        ax.plot(v, s, "o", color=STYLE["the bot's tilt"][0])
+        ax.annotate(f"z = {v:+d}: {s:.0f}/{100 - s:.0f}", (v, s), textcoords="offset points",
+                    xytext=(8, -14 if v > 0 else 6), fontsize=9)
+    lo, hi = (bot["base"] - bot["down"]) * 100, (bot["base"] + bot["up"]) * 100
+    ax.text(-3.35, lo + 0.45 * (bot["base"] * 100 - lo), f"gold has led\n→ down to {lo:.0f}/{100 - lo:.0f}", fontsize=10, color="#a0812c")
+    ax.text(1.9, bot["base"] * 100 - 0.3 * (bot["base"] * 100 - lo), f"stocks have led\n→ up to {hi:.0f}/{100 - hi:.0f}",
+            fontsize=10, color="#2c5ba0")
+    ax.text(0.08, bot["base"] * 100 - 4, f"no lead: {bot['base']:.0%}/{1 - bot['base']:.0%}", fontsize=9, color="#333")
+    ax.set_xlim(-3.5, 3.5)
+    ax.set_ylim(lo - 3, hi + 3)
+    ax.set_xlabel(f"z = stocks' {bot['lookback']}-month lead over gold ÷ its usual size")
+    ax.set_ylabel("stock share (%), the rest in gold")
+    ax.set_title(f"The rule: a smooth tilt between {lo:.0f}/{100 - lo:.0f} and {hi:.0f}/{100 - hi:.0f}, "
+                 f"centred on {bot['base']:.0%}/{1 - bot['base']:.0%}", fontsize=11)
+    ax.grid(alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(path, dpi=110)
+    plt.close(fig)
