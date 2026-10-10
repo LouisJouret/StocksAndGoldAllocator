@@ -1,9 +1,9 @@
-# Stocks + gold, with a momentum tilt
+# MixStocks&Gold
 
 **A small trading bot that holds world stocks and gold, and leans toward whichever has led for the past year.**
 Backtested monthly since 1975. Trades through [Alpaca](https://alpaca.markets).
 
-![python](https://img.shields.io/badge/python-3.12-blue) ![license](https://img.shields.io/badge/license-MIT-green) ![style](https://img.shields.io/badge/long--only-no%20leverage-lightgrey)
+[![tests](https://github.com/LouisJouret/MixStocksAndGold/actions/workflows/tests.yml/badge.svg)](https://github.com/LouisJouret/MixStocksAndGold/actions/workflows/tests.yml) ![python](https://img.shields.io/badge/python-3.12-blue) ![license](https://img.shields.io/badge/license-MIT-green) ![style](https://img.shields.io/badge/long--only-no%20leverage-lightgrey)
 
 ![World stocks and gold mixes since 1975, and the bot](docs/mixes.png)
 
@@ -148,7 +148,7 @@ What survived is diversification plus one slow, well-documented effect.
 ## Using it
 
 ```bash
-git clone <this repo> && cd <this repo>
+git clone https://github.com/LouisJouret/MixStocksAndGold && cd MixStocksAndGold
 uv sync                              # needs uv: https://docs.astral.sh/uv/
 uv run pytest                        # offline tests
 uv run trader backtest               # tables + charts in results/ (about 5 seconds)
