@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Template: the README shows how to fill in __REPO__, __HOME__, __UV__ and __UVDIR__ and install it.
+     Trading bot (paper account): every weekday at 16:00 local time. Log: ~/Library/Logs/trader-bot.log
+     Stop:  launchctl bootout gui/$(id -u)/com.trader.rebalance
+     Start: launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.trader.rebalance.plist -->
+<plist version="1.0">
+<dict>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>COLUMNS</key>
+		<string>140</string>
+		<key>PATH</key>
+		<string>__UVDIR__:/usr/bin:/bin</string>
+	</dict>
+	<key>Label</key>
+	<string>com.trader.rebalance</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/zsh</string>
+		<string>-c</string>
+		<string>cd __REPO__ &amp;&amp; date &amp;&amp; __UV__ run trader rebalance --execute</string>
+	</array>
+	<key>StandardErrorPath</key>
+	<string>__HOME__/Library/Logs/trader-bot.log</string>
+	<key>StandardOutPath</key>
+	<string>__HOME__/Library/Logs/trader-bot.log</string>
+	<key>StartCalendarInterval</key>
+	<array>
+		<dict>
+			<key>Hour</key>
+			<integer>16</integer>
+			<key>Minute</key>
+			<integer>0</integer>
+			<key>Weekday</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>Hour</key>
+			<integer>16</integer>
+			<key>Minute</key>
+			<integer>0</integer>
+			<key>Weekday</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key>Hour</key>
+			<integer>16</integer>
+			<key>Minute</key>
+			<integer>0</integer>
+			<key>Weekday</key>
+			<integer>3</integer>
+		</dict>
+		<dict>
+			<key>Hour</key>
+			<integer>16</integer>
+			<key>Minute</key>
+			<integer>0</integer>
+			<key>Weekday</key>
+			<integer>4</integer>
+		</dict>
+		<dict>
+			<key>Hour</key>
+			<integer>16</integer>
+			<key>Minute</key>
+			<integer>0</integer>
+			<key>Weekday</key>
+			<integer>5</integer>
+		</dict>
+	</array>
+</dict>
+</plist>

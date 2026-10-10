@@ -1,0 +1,28 @@
+[project]
+name = "trader"
+version = "0.3.0"
+description = "Trading bot (Alpaca) for a momentum tilt between world stocks and gold, with its backtest"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "yfinance>=0.2.50",
+    "pyyaml>=6.0",
+    "matplotlib>=3.8",
+    "rich>=13",
+    "alpaca-py>=0.30",
+]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[project.scripts]
+trader = "trader.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

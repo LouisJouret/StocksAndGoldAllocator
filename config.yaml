@@ -1,0 +1,24 @@
+# Momentum tilt between world stocks and gold: the trading bot and its backtest.
+# Long-only, no leverage, no shorting.
+
+bot:                        # uv run trader signal / rebalance
+  stocks: ACWI              # fund bought for world stocks (MSCI All Country World)
+  gold: GLDM                # fund bought for gold (same gold as GLD, 0.10%/yr fee instead of 0.40%)
+  signal: {stocks: ACWI, gold: GLD}   # prices the signal is computed from (GLD has a longer history than GLDM)
+  base: 0.8                 # stock share when neither leads
+  up: 0.2                   # up to 100% stocks when stocks lead
+  down: 0.3                 # down to 50% stocks when gold leads
+  lookback: 12              # months of momentum
+  vol_months: 36            # months used to measure the usual size of the lead
+  band: 0.05                # trade only when the stock share is more than 5 points off target
+  cash_buffer: 0.005        # keep 0.5% in cash so orders never ask for more than the account has
+  min_order: 5              # skip orders smaller than this (USD)
+  log: results/bot_log.csv  # one line per run
+
+backtest:                   # uv run trader backtest (uses the bot's rule above)
+  start: "1972-01"          # gold has had a free price since 1971; MSCI World starts in 1972
+  gold_fee: 0.0015          # yearly fee of a gold fund, taken off the gold price
+  cost: 0.001               # per trade: commission (IBKR/Alpaca-like) plus half the bid-ask spread
+  band: 0.05                # same rebalancing band as the bot
+
+output_dir: results
