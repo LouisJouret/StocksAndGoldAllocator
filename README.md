@@ -5,6 +5,17 @@ Backtested monthly since 1975. Trades through [Alpaca](https://alpaca.markets).
 
 ![python](https://img.shields.io/badge/python-3.12-blue) ![license](https://img.shields.io/badge/license-MIT-green)
 
+> **TL;DR**
+> - **What:** holds world stocks (ACWI) and gold (GLDM). Once a month, it leans toward whichever led
+>   over the last 11 months, smoothly from 100% stocks to 100% gold, and holds 80/20 when neither leads.
+> - **Result:** backtested 1975–2026, +12.1% a year against +11.2% for 100% stocks, with a worst drop of
+>   −24% instead of −52%. Even its worst 10 years made +4.4% a year.
+> - **The catch:** the edge is crash insurance. It shines in long crises (the 1970s, 2000–2003, 2008)
+>   and lags stocks by 2–3 points a year in strong bull markets.
+> - **Honest tuning:** only the momentum horizon and the stock limits were fitted to the data, and both
+>   were checked against overfitting.
+> - **Run it:** `uv run trader rebalance --execute` on an Alpaca paper account. Not financial advice.
+
 ![World stocks and gold mixes since 1975, and the bot](docs/mixes.png)
 
 Once a month, the bot compares the last 11 months of world stocks (ACWI) and gold. The more stocks
